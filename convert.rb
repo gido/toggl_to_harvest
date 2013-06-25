@@ -11,27 +11,58 @@
 # Last name
 
 # Toggl format
-# 0-User,1-Client,2-Project,3-Description,4-Billable,5-Start time,6-End time,7-Duration,8-Tags,9-Task,10-Amount (USD)
-# Rain48,CatalogChoice,catalogchoice.org,braintree,Yes,06/21/2011 14:43,06/21/2011 17:28,02:45:20,"","",220.44
+# User,Email,Client,Project,Task,Description,Billable,Start date,Start time,End date,End time,Duration,Tags,Amount
 
 require 'csv'
 require 'date'
-fname = $*.delete_at(0)
-fout = fname.gsub(".csv", "_harvest.csv")
-output = ["date, client, project, task, note, hours, first name, last name".split(",")]
-CSV.foreach(fname) do |row|
-  unless row[0] == "User"
-    tmp = row[7].split(":")
-    time = sprintf('%0.2f',tmp[0].to_f + (tmp[1].to_f/60.0))
-    date = DateTime.parse(row[5]).strftime("%Y-%m-%d")
-    output << [date, row[1], row[2], row[3], "", time, "Ben", "Wiseley"]
+
+def is_header_row(row_array)
+	row_array[0] == "User"
+end
+
+def get_toggl_value( field_name, row_array )
+	toggl_fields = %w( User Email Client Project Task Description Billable Startdate Starttime Enddate Endtime Duration Tags Amount )
+	index = toggl_fields.index( field_name )
+	row_array[ index ]
+end 
+
+input_file_name  = ARGV[0]
+output_file_name = input_file_name.gsub(".csv", "_harvest.csv")
+
+harvest_rows = []
+harvest_rows.push %w( Date Client Project Task Note Hours First\ Name Last\ Name )
+
+task_counter = 0;
+CSV.foreach(input_file_name) do |row|
+  unless is_header_row( row )
+    date 		= get_toggl_value( "Startdate", row )
+    
+    duration_hh_mm_ss = get_toggl_value( "Duration", row ).split(":")
+    duration_decimal  = sprintf('%0.2f',duration_hh_mm_ss[0].to_f + (duration_hh_mm_ss[1].to_f/60.0))
+
+    client 		= get_toggl_value( "Client", row)
+    project 	= get_toggl_value( "Project", row)
+    task 		= get_toggl_value( "Task", row)
+    if task.nil? 
+    	task = task_counter
+    	task_counter += 1;
+    end
+
+    harvest_rows.push [date, "\"#{client}\"", "\"#{project}\"", "\"#{task}\"", "\"\"", duration_decimal, "\"Your\"", "\"Username\""]
   end
 end
-`touch #{fout}`
-`rm #{fout}`
-CSV.open(fout, "wb") do |csv|
-  output.each do |row|
+
+# CSV does not support individual quoting of fields so we have to make them ourselves and remove csv's own quoting afterwards
+csv = CSV.generate :quote_char => "\0" do |csv|
+  harvest_rows.each do |row|
     csv << row
   end
 end
-puts `cat #{fout}`
+csv.gsub!(/\0/, '')
+
+
+File.open( output_file_name, "wb") do |file|
+	file.puts csv
+end
+
+puts IO.read(output_file_name)
