@@ -32,7 +32,6 @@ output_file_name = input_file_name.gsub(".csv", "_harvest.csv")
 harvest_rows = []
 harvest_rows.push %w( Date Client Project Task Note Hours First\ Name Last\ Name )
 
-task_counter = 0;
 CSV.foreach(input_file_name) do |row|
   unless is_header_row( row )
     date 		= get_toggl_value( "Startdate", row )
@@ -44,11 +43,10 @@ CSV.foreach(input_file_name) do |row|
     project 	= get_toggl_value( "Project", row)
     task 		= get_toggl_value( "Task", row)
     if task.nil? 
-    	task = task_counter
-    	task_counter += 1;
+    	task = "Imported"
     end
 
-    harvest_rows.push [date, "\"#{client}\"", "\"#{project}\"", "\"#{task}\"", "\"\"", duration_decimal, "\"Your\"", "\"Username\""]
+    harvest_rows.push [date, "\"#{client}\"", "\"#{project}\"", "\"#{task}\"", "\"\"", duration_decimal, "\"Pål\"", "\"Østerud\""]
   end
 end
 
