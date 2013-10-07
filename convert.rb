@@ -42,11 +42,22 @@ CSV.foreach(input_file_name) do |row|
     client 		= get_toggl_value( "Client", row)
     project 	= get_toggl_value( "Project", row)
     task 		= get_toggl_value( "Task", row)
+    note      = get_toggl_value( "Description", row)
+    user      = get_toggl_value( "User", row)
+    firstname, lastname = user.split(' ', 2)
+
+    next if client.nil? or project.nil?
+
     if task.nil? 
     	task = "Imported"
     end
 
-    harvest_rows.push [date, "\"#{client}\"", "\"#{project}\"", "\"#{task}\"", "\"\"", duration_decimal, "\"Pål\"", "\"Østerud\""]
+    if lastname.nil?
+      lastname = "Imported"
+    end
+
+    # Date, Client, Project, Task, Note, Hours, Firstname, Lastname
+    harvest_rows.push [date, "\"#{client}\"", "\"#{project}\"", "\"#{task}\"", "\"#{note}\"", duration_decimal, "\"#{firstname}\"", "\"#{lastname}\""]
   end
 end
 
